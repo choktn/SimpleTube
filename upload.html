@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="//code.jquery.com/jquery-2.2.3.min.js"></script> 
+    <script src="jquery.session.js"></script>
+    <title>Upload Video</title>
+  </head>
+  <body>
+    <nav class="navbar navbar-dark navbar-expand-lg fixed-top bg-dark portfolio-navbar gradient">
+      <div class="container">
+        <a class="navbar-brand logo" href="index.html">SimpleTube</a>
+        <button data-toggle="collapse" class="navbar-toggler" data-target="#navbarNav">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="nav navbar-nav ml-auto">
+            <li id = "uploadvideolink" class="nav-item" role="presentation"><a class="nav-link" href="upload.html">Upload Video</a></li>
+            <li class="nav-item" role="presentation">
+              <a id = "signinoutlink" class="nav-link" href="signin.html">
+                Sign Out (<script>document.write($.session.get('username')+")");</script>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <div class="container border-secondary mb-3 shadow-lg" 
+    style="margin-top: 5rem; margin-bottom: 5rem; padding-right: 2rem; padding-top: 1rem;">
+      <div  id="userVideos" style="text-align:center;">
+        <div>
+          <h5>Your videos</h5>
+          <button type="button" class="btn btn-primary" id="uploadpagebutton">Upload Video</button>
+          <button type="button" class="btn btn-primary" id="editVideobutton">Edit Videos</button>
+        </div>
+        <!-- Videos from db display here -->         
+      </div>
+    </div>
+    <div class="container" style="margin-top: 5rem;">
+      <main role="main" class="container border-secondary mb-3 shadow-lg" style="margin-top: 5rem; max-width: 45rem; padding: 2rem;">
+        <h2>Upload video</h2>
+        <label id="message"></label>
+        <form action="" method="post" enctype="multipart/form-data" id="uploadform">
+          <div class="form-group">
+            <label for="videoNameLable">Video name</label>
+            <input type="text" class="form-control" id="videoName" name="videoName" placeholder="Enter video name" required>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea class="form-control" id="description" name="description" placeholder="Enter description" rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <input type="file" name="fileToUpload" id="fileToUpload" accept="video/mp4, video/ogg, video/webm" required>
+            <button type="button" class="btn btn-primary" id="videoUploadButton">Upload</button>
+            <div id="submitmsg" style="display:none;color:red;"></div>
+          </div>
+        </form>
+      </main>
+    </div>
+    <script>
+      //redirect to the sign in page if the user is not logged in, when the user signs in it will redirect back to the upload page
+      if (!$.session.get('username')) {
+          $.session.set('redirect', "upload.html");
+          window.location = "signin.html"
+      }
+      
+      //get current date
+      var date = new Date();
+      var currentDate = (date.getMonth() + 1) + "/" + date.getDate() + "/" + date.getFullYear();
+      console.log("CurrentDate:" + currentDate);
+      
+    // Get Newest videos from database
+    $.post('main-php.php', {
+        'username': $.session.get('username'),
+        'action': "getuservideos"
+      }, function (result) {
+        if (result.success) {
+          console.log("Getting Newest Videos from db");
+          console.log("result length:" + result.videos.length);
+          var length = result.videos.length;
+
+          // the loop to getting data from result array
+          $.each(result.videos, function (index) {
+            var uservideo;
+            var videoname = this.fileFullName.split(".");
+            console.log("Video name:" + videoname[0]);
+
+            uservideo = $(
+              '<div class = "col-sm-8">' +
+              '<div class = "row">' + 
+              '<div id="video_' + this.id + '" style="text-align:left;padding-top: 2rem;">' +
+              '<div>' +
+              '<a href="watch.html?id=' + this.id + '">' +
+              '<video height="40%" width="40%">' +
+              '<source src="uploads/' + videoname[0] + '.mp4" type="video/mp4">' +
+              '<source src="uploads/' + videoname[0] + '.m4v" type="video/mp4">' +
+              '<source src="uploads/' + videoname[0] + '.ogv" type="video/ogg">' +
+              '<source src="uploads/' + videoname[0] + '.ogm" type="video/ogg">' +
+              '<source src="uploads/' + videoname[0] + '.webm" type="video/webm">' +
+              'Your browser does not support the HTML5 video tag.' +
+              '</video>' +
+              '</a>' +
+              '</div>' +
+              '<div>' +
+              '<h10 class="font-weight-bold" style="float:left;">' + this.date + '</h10>' +
+              '<h10 class="font-weight-bold" style="float:right;">' + this.views + ' views</h10>' +
+              '<h5 style="text-align:center;">' + this.videoName + '</h5>' +
+              '<p id="videodescription" style="float:left;">' + this.description + '</p>' +
+              '<button type="button" class="btn btn-primary" id="delete_' + this.id + '" style="float:right;display:none;">Delete</button>' +
+              '</div></div><div class="clearfix"></div>');
+            $('#userVideos').append(uservideo);
+          });
+        } else {
+          alert("Error polling server for newest videos!");
+        }
+      });
+
+      //on upload button click
+      $('#videoUploadButton').on('click', function(event) {      
+        //check to make sure all fields are at least set, output an error message if one is not
+        if ($('#description').val() && $('#videoName').val() && $('#fileToUpload').val()) {
+    
+          //get the file size, output an error message if file is too big
+          if ($("#fileToUpload")[0].files[0].size <= 2097152) {
+  
+            //get the extension of the file selected
+            var extension = $('input[type=file]').val().split('\\').pop().split(".")[1]
+
+            //make sure that it is a file that is supported (on this site that is), output an error message if it is not one of these
+            if (extension == "mp4" || extension == "m4v" || extension == "ogv" || extension == "ogm" || extension == "webm") {
+              event.preventDefault();
+
+              console.log("\nUpload btn click filename: " + $('#fileToUpload').val());
+              console.log("Upload btn click videoName: " + $('#videoName').val());
+              console.log("Description: " + $('#description').val());
+
+              //prepare data to be sent
+              var fd = new FormData();
+              fd.append('videoName', $('#videoName').val());
+              fd.append('fileToUpload', $('#fileToUpload')[0].files[0]);
+              fd.append('description', $('#description').val());
+              fd.append('currentDate', currentDate);
+              fd.append('username', $.session.get('username'));
+              fd.append('action', "videoUpload");
+
+              //ajax request to upload the file, above data is sent to the php file with the php file returning the success of the operation
+              $.ajax({
+                url: 'main-php.php',
+                type: 'post',
+                data: fd,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                  if (response.success) {
+                    $("#submitmsg").css("display", "none")
+                    alert('File successfully uploaded!');
+                    
+                    //load the home page if upload was successful
+                    window.location = "index.html"
+                  } else {
+                    $("#submitmsg").css("display", "block")
+                    $("#submitmsg").text(response.error)
+                  }
+                },
+              });
+            } else {
+              $("#submitmsg").css("display", "block")
+              $("#submitmsg").text("Error: Unsupported file type")
+            }
+          } else {
+            $("#submitmsg").css("display", "block")
+            $("#submitmsg").text("Error: File too big. Maximum file size is 2 MB.")      
+          }
+        } else {
+          $("#submitmsg").css("display", "block")
+          $("#submitmsg").text("Error: Not all fields were filled out correctly")
+        }
+      });
+
+      $('#editVideobutton').on('click', function(event) { 
+          $.post('main-php.php', {
+            'username': $.session.get('username'),
+            'action': "getuservideos"
+            }, function (result) {
+              if (result.success) {
+                $.each(result.videos, function(index) {
+                  $("#delete_" + this.id).css("display", "block")
+                });
+              }
+              else {
+                alert("Error: Could not fetch videos!")
+              }
+      });
+
+      $(":button").click(function() {
+        if (this.id.includes("delete")) {
+          var id = this.id.match(/\d+/)
+
+          $.post('main-php.php', {
+            'id': id[0],
+            'action': "deletevideo"
+            }, function (result) {
+              if (result.success) {
+                $("#video_" + id[0]).remove()
+              }
+              else {
+                alert("Error: Could not delete video!")
+              }
+            });
+        }
+        
+      });
+
+    });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+  </body>
+</html>

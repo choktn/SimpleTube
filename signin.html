@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="//code.jquery.com/jquery-2.2.3.min.js"></script> 
+    <script src="jquery.session.js"></script>
+    <title>Log in</title>
+  </head>
+  <body>
+    <nav class="navbar navbar-dark navbar-expand-lg fixed-top bg-dark portfolio-navbar gradient">
+      <div class="container">
+        <a class="navbar-brand logo" href="index.html">SimpleTube</a>
+        <button data-toggle="collapse" class="navbar-toggler" data-target="#navbarNav"><span class="sr-only">Toggle navigation</span><span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse"
+          id="navbarNav">
+          <ul class="nav navbar-nav ml-auto">
+            <li class="nav-item" role="presentation"><a class="nav-link" href="signin.html">Sign In</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <main role="main" class="container border-secondary mb-3 shadow-lg" style="margin-top: 5rem; max-width: 45rem; padding: 2rem;">
+      <h2>Log in</h2>
+      <div>
+        <div class="form-group">
+          <label>Username:</label>
+          <input class="form-control" id="username">
+        </div>
+        <div class="form-group">
+          <label>Password: </label>
+          <input type="password" class="form-control" id="password">
+        </div>
+        <button type="submit" class="btn btn-primary" id="loginsubmitbutton">Log in</button>
+        <a href="signup.html">Sign Up</a>
+        <div id="submitmsg" style="display:none;color:red;"></div>
+      </div>
+    </main>
+
+    <!-- Jquery part -->
+    <script>
+      //if there is an account signed in, sign them out
+      $(document).on('ready', function() {
+        if ($.session.get('username')) {
+          $.session.clear();
+        }
+      });
+      
+      //handles the login button click
+      $('#loginsubmitbutton').on('click', function(event) {
+      event.preventDefault();
+      
+      //check to make sure the username and password fields are filled
+      if ($('#username').val() && $('#password').val()) {
+      
+      //post request to validate the username and password, username and password are sent to the php file with the file returning the success of the operation
+      $.post('main-php.php', {
+        'username' : $('#username').val(),
+        'password' : $('#password').val(),
+        'action' : "login"
+      }, function(result) {
+        //if the operation was a success, that means the username and password are correct, otherwise display an error message
+        if(result.success) {
+          //hide the error message
+          $("#submitmsg").css("display", "none")
+          //set the current session to the user account
+          $.session.set('username', $('#username').val());
+  
+          //redirect to another webpage if neccessary (i.e. user tried to comment without logging in), otherwise load the homepage
+          if (!$.session.get("redirect")) {
+            window.location = "index.html"
+          }
+          else {
+            window.location = $.session.get("redirect")
+            $.session.remove("redirect");
+          }
+        } else {
+          $("#submitmsg").css("display", "block")
+          $("#submitmsg").text(result.error)
+        }
+      });
+      }
+      else {
+        $("#submitmsg").css("display", "block")
+        $("#submitmsg").text("Error: Not all fields were filled out correctly")
+      }
+      });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+  </body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" 
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="//code.jquery.com/jquery-2.2.3.min.js"></script> 
+    <script src="jquery.session.js"></script>
+    <title id="title"></title>
+  </head>
+  <body>
+    <nav class="navbar navbar-dark navbar-expand-lg fixed-top bg-dark portfolio-navbar gradient">
+      <div class="container">
+        <a class="navbar-brand logo" href="index.html">SimpleTube</a>
+        <button data-toggle="collapse" class="navbar-toggler" data-target="#navbarNav"><span class="sr-only">Toggle navigation</span><span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="nav navbar-nav ml-auto">
+            <form class="form-inline my-2 my-lg-0">
+              <input class="form-control mr-sm-2" type="search" id="search" placeholder="Search Videos" aria-label="Search">
+            </form>                
+            <ul class="nav navbar-nav ml-auto">
+              <li id = "uploadvideolink" class="nav-item" role="presentation" style="display: none;"><a class="nav-link" href="upload.html">Upload Video</a></li>
+              <li class="nav-item" role="presentation"><a id = "signinoutlink" class="nav-link" href="signin.html">Sign In</a></li>
+            </ul>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <div class="container-lg border-secondary mb-3 shadow-lg" 
+      style="margin: 3rem; padding: 2rem;">
+      <div class = "row">
+        <div class = "col-sm-8">
+          <div class="row align-top" id="watchVideoPanel">
+            <!-- video on Watch display here -->
+          </div>
+          <div>
+            <h10 id="videoviews" style="float:left;font-style:italic;"></h10>
+            <h10 id="videodatecreated"style="float:right;font-style:italic;"></h10>
+            <h5 id="videotitle"style="text-align:center"></h5>
+          </div>
+          <p id="videousername" style="text-decoration:underline overline;"></p>
+          <p id="videodescription"></p>
+          <hr/>
+          <!-- Adding comment -->
+          <div class="container">
+            <form action="" method="post" enctype="multipart/form-data" id="commentform">
+              <textarea class="form-control" id="comment" placeholder="Enter comment" rows="3"></textarea>
+              <div class="form-group" style="padding-top: .5rem;">
+                <button type="button" class="btn btn-primary" id="commentButton">Comment</button>
+                &nbsp; &nbsp;
+                <button type="reset" class="btn btn-primary" id="cancelButton">Cancel</button>
+                <div id="submitmsg" style="display:none;color:red;"></div>
+              </div>
+            </form>
+          </div>
+          <div class="container" id="comments">
+          </div>
+        </div>
+        <div class = "col-sm-4" >
+          <div class='row'>
+            <div class = "col-sm-12">
+              <h4>
+              Most Viewed Videos
+              <hr/>
+            </div>
+          </div>
+          <div class = "col-sm-12" id="mostviewedvideos">
+            <!-- Most view videos display here -->
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      //functions to obtain the video id from the url 
+      function getUrlVars() {
+          var vars = {};
+          var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m, key, value) {
+              vars[key] = value;
+          });
+          return vars;
+      }
+      
+      function getUrlParam(parameter, defaultvalue) {
+          var urlparameter = defaultvalue;
+          if (window.location.href.indexOf(parameter) > -1) {
+              urlparameter = getUrlVars()[parameter];
+          }
+          return urlparameter;
+      }
+      
+      $(document).on('ready', function() {
+          //check if the username is logged in, hide the sign in button if so, or show it if not
+          if ($.session.get('username')) {
+              $("#uploadvideolink").css("display", "block")
+              $("#signinoutlink").text("Sign Out (" + $.session.get('username') + ")")
+          } else {
+              $("#uploadvideolink").css("display", "none")
+              $("#signinoutlink").text("Sign In")
+          }
+      
+          //get the video id
+          var videoid = getUrlParam('id', 'Empty');
+      
+          //post request to get the video found by the video id and the video details, the php file returns each detail in a separate variable
+          $.post('main-php.php', {
+              'id': videoid,
+              'action': "getVideoInfo"
+          }, function(result) {
+              if (result.success) {
+                  //replace the text for each detail
+                  $("#title").text(result.videoName)
+                  $("#videotitle").text(result.videoName)
+                  $("#videousername").text(result.username)
+                  $("#videoviews").text(result.views + " views")
+                  $("#videodatecreated").text(result.date)
+                  $("#videodescription").text(result.description)
+      
+                  //code to display the video
+                  var videoname = result.fileFullName.split(".")
+      
+                  var video = $('<video width="100%" height="350rem" controls>' +
+                      '<source src="uploads/' + videoname[0] + '.mp4" type="video/mp4">' +
+                      '<source src="uploads/' + videoname[0] + '.m4v" type="video/mp4">' +
+                      '<source src="uploads/' + videoname[0] + '.ogv" type="video/ogg">' +
+                      '<source src="uploads/' + videoname[0] + '.ogm" type="video/ogg">' +
+                      '<source src="uploads/' + videoname[0] + '.webm" type="video/webm">' +
+                      'Your browser does not support the HTML5 video tag.' +
+                      '</video>');
+      
+                  $('#watchVideoPanel').append(video);
+              } else {
+                  alert("Error" + result.error)
+              }
+          });
+      
+          //post request to get the comments of the video found by the video id, the php file returns the list of comments
+          $.post('main-php.php', {
+              'id': videoid,
+              'action': "getComments"
+          }, function(result) {
+              if (result.success != false) {
+                  //reverse to output comments starting from the newest
+                  result.comments.reverse()
+                  $.each(result.comments, function(index) {
+                      //output each commend under the comments div
+                      $('#comments').append("<p>" + this.username + " - " + this.date + "</p>" +
+                          "<p>" + this.comment + "</p>" + "<hr/>");
+                  });
+              } else {
+                  console.log(result.error)
+              }
+          });
+
+          //post request to get a list of video with the most views, code is identical to the code in index.html
+          $.post('main-php.php', {
+              'action': "getMostViewVideos"
+          }, function(result) {
+              if (result.success) {
+                  console.log("Getting Newest Videos from db");
+                  console.log("result length:" + result.videos.length);
+                  var length = result.videos.length;
+                  $.each(result.videos, function(index) {
+                      var videoMostView;
+                      var videoname = this.fileFullName.split(".");
+                      console.log("Video name:" + videoname[0]);
+      
+                      videoMostView = $(
+                          '<div class = "col-sm-12" style="padding-bottom: 1rem;">' +
+                          // '<div class = "row">' +          
+                          '<a id="playvideo" name="playvideo" href="watch.html?id=' + this.id + '">' +
+                          '<video height="100%" width="100%">' +
+                          '<source src="uploads/' + videoname[0] + '.mp4" type="video/mp4">' +
+                          '<source src="uploads/' + videoname[0] + '.m4v" type="video/mp4">' +
+                          '<source src="uploads/' + videoname[0] + '.ogv" type="video/ogg">' +
+                          '<source src="uploads/' + videoname[0] + '.ogm" type="video/ogg">' +
+                          '<source src="uploads/' + videoname[0] + '.webm" type="video/webm">' +
+                          'Your browser does not support the HTML5 video tag.' +
+                          '</video>' +
+                          '</a>' +
+                          '<div class="col-sm-12 text-sm-left font-weight-bold">' + this.videoName + '</div>' +
+                          '<div class="col-sm-12 text-sm-left">' + this.username + ' </div>' +
+                          '<div class="col-sm-12 text-sm-left">' + this.views + ' views - ' + this.date + '</div>' +
+                          '</div><div class="clearfix"></div>');
+      
+                      $('#mostviewedvideos').append(videoMostView);
+                  });
+              } else {
+                  alert("Error polling server for most view videos!");
+              }
+          });
+      });
+      
+      //handles commenting
+      $('#commentButton').on('click', function(event) {
+      
+          //check to make sure the user is logged in, redirect to the login page if not
+          if ($.session.get('username')) {
+      
+              //check to make sure the comment isn't blank, output an error message if the comment is blank
+              if ($('#comment').val()) {
+                
+                  //hide the error message
+                  $("#submitmsg").css("display", "none");
+                  var videoid = getUrlParam('id', 'Empty');
+      
+                  //get the date
+                  var date = new Date();
+                  var currentDate = (date.getMonth() + 1) + "/" + date.getDate() + "/" + date.getFullYear();
+      
+                  //post request to send upload the comment to the database, the comment, user who commented, id of the video, and current date gets passed to the database
+                  $.post('main-php.php', {
+                      'comment': $('#comment').val(),
+                      'username': $.session.get('username'),
+                      'id': videoid,
+                      'date': currentDate,
+                      'action': "comment"
+                  }, function(result) {
+                      if (result.success) {
+                          //display the comment at the front
+                          $('#comments').prepend("<p>" + $.session.get('username') + " - " + currentDate + "</p>" +
+                              "<p>" + $('#comment').val() + "</p>" + "<hr/>");
+      
+                          $('#comment').text("");
+                      } else {
+                          alert(result.error)
+                      }
+      
+                  });
+              } else {
+                  $("#submitmsg").css("display", "block")
+                  $("#submitmsg").text("Invalid Comment")
+              }
+      
+          } else {
+              //set the redirect to redirect back to the video after logging in
+              $.session.set('redirect', window.location.href);
+      
+              //load the signin page
+              window.location = "signin.html";
+          }
+      
+      });
+      
+      //clear text in the comment box when the user clicks the cancel button
+      $('#cancelButton').on('click', function(event) {
+          $('#comment').text("");
+      });
+
+      //on enter, check to make sure the search isn't blank then load the search page sending the search with it
+      $('#search').keypress(function (e) {
+          var key = e.which;
+          if (key == 13) {
+            if ($('#search').val()) {
+              window.location = "search.html?search=" + $('#search').val()
+            }
+            else {
+              alert("Search cannot be empty!")
+            }
+
+            return false;
+          }
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+  </body>
+</html>

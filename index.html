@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <!-- Required meta tags -->
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <!-- Bootstrap CSS -->
+      <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" 
+         integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+      <script src="//code.jquery.com/jquery-2.2.3.min.js"></script> 
+      <script src="jquery.session.js"></script>
+      <title>Home page</title>
+   </head>
+   <body>
+      <nav class="navbar navbar-dark navbar-expand-lg fixed-top bg-dark portfolio-navbar gradient">
+         <div class="container">
+            <a class="navbar-brand logo" href="index.html">SimpleTube</a>
+            <button data-toggle="collapse" class="navbar-toggler" data-target="#navbarNav">
+              <span class="sr-only">Toggle navigation</span>
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+              <ul class="nav navbar-nav ml-auto">
+                <form class="form-inline my-2 my-lg-0">
+                  <input class="form-control mr-sm-2" type="search" id="search" placeholder="Search Videos" aria-label="Search">
+                </form>                
+                <ul class="nav navbar-nav ml-auto">
+                  <li id = "uploadvideolink" class="nav-item" role="presentation" style="display: none;"><a class="nav-link" href="upload.html">Upload Video</a></li>
+                  <li class="nav-item" role="presentation"><a id = "signinoutlink" class="nav-link" href="signin.html">Sign In</a></li>
+                </ul>
+              </ul>
+            </div>
+         </div>
+      </nav>
+      <div class="container-lg" style="margin: 3rem; padding-top: 3rem;">
+         <div class = "row">
+            <div class = "col-sm-8">
+               <div class="row" id="newestVideosPanel"  style="padding-right: 3rem;">
+                  <div class = "col-sm-12">
+                     <h4>
+                     Newest Videos</h>
+                  </div>
+                  <!-- newest videos from db and display here -->
+               </div>
+            </div>
+            <div class = "col-sm-4" style="background-color: lightgray;">
+               <div class = "col-sm-12" id="mostViewVideosPanel">
+                  <h4>
+                  Most Viewed Videos</h>
+               </div>
+               <!-- most view videos from db and display here -->
+            </div>
+         </div>
+      </div>
+
+      <!-- Jquery part -->
+      <script>
+        var fileFullName = '';
+        var filelocation = '';
+        var date = new Date();
+        var currentDate = (date.getMonth() + 1) + "/" + date.getDate() + "/" + date.getFullYear();
+        console.log("CurrentDate:" + currentDate);
+
+        $(document).on('ready', function () {
+          //check if the username is logged in, hide the sign in button if so, or show it if not
+          if ($.session.get('username')) {
+            $("#uploadvideolink").css("display", "block")
+            $("#signinoutlink").text("Sign Out (" + $.session.get('username') + ")")
+          } else {
+            $("#uploadvideolink").css("display", "none")
+            $("#signinoutlink").text("Sign In")
+          }
+
+          // Get Newest videos from database
+          $.post('main-php.php', {
+            'action': "getNewestVideos"
+          }, function (result) {
+            if (result.success) {
+              console.log("Getting Newest Videos from db");
+              console.log("result length:" + result.videos.length);
+              var length = result.videos.length;
+
+              // the loop to getting data from result array
+              $.each(result.videos, function (index) {
+                var videoNewst;
+                var videoname = this.fileFullName.split(".");
+                console.log("Video name:" + videoname[0]);
+
+                videoNewst = $(
+                  '<div class = "col-sm-4" style="padding-left: 2rem;">' +
+                  '<div class = "row">' +
+                  '<a id="playvideo" href="watch.html?id=' + this.id + '">' +
+                  '<video height="100%" width="100%">' +
+                  '<source src="uploads/' + videoname[0] + '.mp4" type="video/mp4">' +
+                  '<source src="uploads/' + videoname[0] + '.m4v" type="video/mp4">' +
+                  '<source src="uploads/' + videoname[0] + '.ogv" type="video/ogg">' +
+                  '<source src="uploads/' + videoname[0] + '.ogm" type="video/ogg">' +
+                  '<source src="uploads/' + videoname[0] + '.webm" type="video/webm">' +
+                  'Your browser does not support the HTML5 video tag.' +
+                  '</video>' +
+                  '</a>' +
+                  '</div>' +
+                  '<div class = "row" style="padding: 0">' +
+                  '<div class="col-6 text-sm-left font-weight-bold">' + this.videoName + '</div>' +
+                  '<div class="col-6 text-sm-right" >' + this.views + ' views</div>' +
+                  '</div>' +
+                  '</div><div class="clearfix"></div>');
+                $('#newestVideosPanel').append(videoNewst);
+              });
+            } else {
+              alert("Error polling server for newest videos!");
+            }
+          });
+
+          // getting Most view videos from db
+          console.log("polling server: Most view Videos");
+          $.post('main-php.php', {
+            'action': "getMostViewVideos"
+          }, function (result) {
+            if (result.success) {
+              console.log("Getting Newest Videos from db");
+              console.log("result length:" + result.videos.length);
+              var length = result.videos.length;
+
+              // the loop to getting data from result array
+              $.each(result.videos, function (index) {
+                var videoMostView;
+                var videoname = this.fileFullName.split(".");
+                console.log("Video name:" + videoname[0]);
+
+                videoMostView = $(
+                  '<div class = "col-sm-12" style="padding-bottom: 1rem;">' +
+                  '<a id="playvideo" name="playvideo" href="watch.html?id=' + this.id + '">' +
+                  '<video height="100%" width="100%">' +
+                  '<source src="uploads/' + videoname[0] + '.mp4" type="video/mp4">' +
+                  '<source src="uploads/' + videoname[0] + '.m4v" type="video/mp4">' +
+                  '<source src="uploads/' + videoname[0] + '.ogv" type="video/ogg">' +
+                  '<source src="uploads/' + videoname[0] + '.ogm" type="video/ogg">' +
+                  '<source src="uploads/' + videoname[0] + '.webm" type="video/webm">' +
+                  'Your browser does not support the HTML5 video tag.' +
+                  '</video>' +
+                  '</a>' +
+                  '<div class="col-sm-12 text-sm-left font-weight-bold">' + this.videoName + '</div>' +
+                  '<div class="col-sm-12 text-sm-left">' + this.username + ' </div>' +
+                  '<div class="col-sm-12 text-sm-left">' + this.views + ' views - ' + this.date + '</div>' +
+                  '</div><div class="clearfix"></div>');
+
+                $('#mostViewVideosPanel').append(videoMostView);
+              });
+            } else {
+              alert("Error polling server for most view videos!");
+            }
+          });
+
+        });
+
+        //on enter, check to make sure the search isn't blank then load the search page sending the search with it
+        $('#search').keypress(function (e) {
+          var key = e.which;
+          if (key == 13) {
+            if ($('#search').val()) {
+              window.location = "search.html?search=" + $('#search').val()
+            }
+            else {
+              alert("Search cannot be empty!")
+            }
+
+            return false;
+          }
+        });
+      </script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+      <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+   </body>
+</html>

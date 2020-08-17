@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="//code.jquery.com/jquery-2.2.3.min.js"></script> 
+    <script src="jquery.session.js"></script>
+    <title>Sign Up</title>
+  </head>
+  <body>
+    <nav class="navbar navbar-dark navbar-expand-lg fixed-top bg-dark portfolio-navbar gradient">
+      <div class="container">
+        <a class="navbar-brand logo" href="index.html">SimpleTube</a>
+        <button data-toggle="collapse" class="navbar-toggler" data-target="#navbarNav"><span class="sr-only">Toggle navigation</span><span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse"
+          id="navbarNav">
+          <ul class="nav navbar-nav ml-auto">
+            <li class="nav-item" role="presentation"><a class="nav-link" href="signin.html">Sign In</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <main role="main" class="container border-secondary mb-3 shadow-lg" style="margin-top: 5rem; max-width: 45rem; padding: 2rem;">
+      <h2>Sign up</h2>
+      <div>
+        <div class="form-group">
+          <label>Username:</label>
+          <input class="form-control" id="username">
+          <div id="usernamemsg" style="display:none;color:red;">Username already taken!</div>
+        </div>
+        <div class="form-group">
+          <label>Password: </label>
+          <input type="password" class="form-control" id="password">
+        </div>
+        <div class="form-group">
+          <label>Re-enter password: </label>
+          <input type="password" class="form-control" id="reenterpassword">
+          <div id="passwordmsg" style="display:none;color:red;">Passwords do not match!</div>
+        </div>
+        <div class="form-group">
+          <label>Full Name:</label>
+          <input class="form-control" id="name">
+          <div id="namemsg" style="display:none;color:red;"></div>
+        </div>
+        <div class="form-group">
+          <label>Email:</label>
+          <input class="form-control" id="email">
+          <div id="emailmsg" style="display:none;color:red;"></div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="signupsubmitbutton">Submit</button>
+        <a href="signin.html">Already Have An Account?</a>
+        <div id="submitmsg" style="display:none;color:red;"></div>
+      </div>
+    </main>
+    <script>
+      //check to make sure the user is logged in before signing up, go back to the homepage is the user is logged in
+      if ($.session.get('username')) {
+          alert("Please sign out first!")
+          window.location = "index.html"
+      }
+      
+      //check user input for each field
+      $("#username, #password, #reenterpassword, #name, #email").on('input', function() {
+      
+          //each time the user inputs something in the username field, make a post request to determine if the username already exists, php returns the success of the operation
+          if ($('#username').val()) {
+              $.post('main-php.php', {
+                  'username': $('#username').val(),
+                  'action': "checkusername"
+              }, function(result) {
+      
+                  //hide the error message if there is not a username with the current input or show the error message if there is
+                  if (result.success) {
+                      $("#usernamemsg").css("display", "none")
+                  } else {
+                      $("#usernamemsg").css("display", "block")
+                  }
+              });
+          } else {
+              $("#usernamemsg").css("display", "none")
+          }
+      
+          //each time the user inputs something in the password field, check if the re-enter password field is the same
+          if ($('#password').val()) {
+              if ($('#password').val() == $('#reenterpassword').val()) {
+                  $("#passwordmsg").css("display", "none")
+              } else {
+                  $("#passwordmsg").css("display", "block")
+              }
+          } else {
+              $("#passwordmsg").css("display", "none")
+          }
+      
+          //each time the user inputs something in the name field, check if the name is a valid name (has alphabetical characters and has two spaced out words)
+          if ($('#name').val()) {
+              if (/^[a-zA-Z]+ [a-zA-Z]+$/.test($('#name').val())) {
+                  $("#namemsg").css("display", "none")
+              } else {
+                  $("#namemsg").css("display", "block")
+                  $("#namemsg").text("Name not valid!")
+              }
+          } else {
+              $("#namemsg").css("display", "none")
+          }
+      
+          //each time the user inputs something in the email field, first check if the email is a valid email (example@example.com)
+          if ($('#email').val()) {
+              if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test($('#email').val())) {
+                  $("#emailmsg").css("display", "none")
+      
+                  //then make a post request sending the email inputted to make sure the email doesn't already exist, the php file returns the success of the operation
+                  $.post('main-php.php', {
+                      'email': $('#email').val(),
+                      'action': "checkemail"
+                  }, function(result) {
+                      if (result.success) {
+                          $("#emailmsg").css("display", "none")
+                      } else {
+                          $("#emailmsg").css("display", "block")
+                          $("#emailmsg").text("Email already taken!")
+                      }
+                  });
+              } else {
+                  $("#emailmsg").css("display", "block")
+                  $("#emailmsg").text("Invalid email format")
+              }
+          } else {
+              $("#emailmsg").css("display", "none")
+          }
+      });
+      
+      //handles user clicking the sign up button
+      $('#signupsubmitbutton').on('click', function(event) {
+          event.preventDefault();
+      
+          //check that there are no error messages currently being displayed and that there are no empty inputs for each field, output an error message if so
+          if ($("#usernamemsg").css("display") == "none" && $("#passwordmsg").css("display") == "none" && $("#namemsg").css("display") == "none" && $("#emailmsg").css("display") == "none" && $('#username').val() && $('#password').val() && $('#name').val() && $('#email').val()) {
+              
+             //post request to upload user info to the database, username, password, name, and email are sent with the php file returning the success of the operation  
+              $("#submitmsg").css("display", "none")
+              $.post('main-php.php', {
+                  'username': $('#username').val(),
+                  'password': $('#password').val(),
+                  'name': $('#name').val(),
+                  'email': $('#email').val(),
+                  'action': "signup"
+              }, function(result) {
+                  if (result.success) {
+                      
+                      //load the sign in page if sign up was successful
+                      window.location = "signin.html";
+                  }
+              });
+          } else {
+              $("#submitmsg").css("display", "block")
+              $("#submitmsg").text("Error: Not all fields were filled out correctly")
+          }
+      });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+  </body>
+</html>
